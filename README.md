@@ -1,71 +1,46 @@
-# anchor README
+# Anchor
 
-This is the README for your extension "anchor". After writing up a brief description, we recommend including the following sections.
+Harpoon-like file navigation for VS Code. Anchor the files you keep coming back to and jump between them instantly.
+
+## Why
+
+You're working on a codebase and you keep jumping between the same 3-5 files. Fuzzy finder is slow. Tabs pile up. Anchor lets you bookmark those files into numbered slots and switch between them with a single keystroke.
+
+## Usage
+
+### Anchor a file
+
+Open a file and press `Cmd+Shift+A` (Mac) / `Ctrl+Shift+A` (Windows/Linux). It gets added to the next available slot (1-9).
+
+### Jump to a file
+
+Press `Cmd+1` through `Cmd+9` (Mac) / `Ctrl+1` through `Ctrl+9` (Windows/Linux) to jump directly to the file in that slot.
+
+### View all anchors
+
+Press `Cmd+Shift+E` (Mac) / `Ctrl+Shift+E` (Windows/Linux) to open the anchor list. Select a file to jump to it, or click the trash icon to remove it.
+
+### Remove current file
+
+Press `Cmd+Shift+D` (Mac) / `Ctrl+Shift+D` (Windows/Linux) to remove the current file from anchors.
+
+## Keybindings
+
+| Action | Mac | Windows/Linux |
+|--------|-----|---------------|
+| Anchor current file | `Cmd+Shift+A` | `Ctrl+Shift+A` |
+| Remove current file | `Cmd+Shift+D` | `Ctrl+Shift+D` |
+| Open anchor list | `Cmd+Shift+E` | `Ctrl+Shift+E` |
+| Jump to slot 1-9 | `Cmd+1-9` | `Ctrl+1-9` |
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Slot-based navigation** -- up to 9 anchored files, each mapped to a number key
+- **Status bar indicator** -- shows the current file's slot number when it's anchored
+- **Per-workspace** -- anchors are scoped to your workspace and persist across restarts
+- **Quick pick list** -- view, jump to, and remove anchors from a single menu
 
-For example if there is an image subfolder under your extension project workspace:
+## Notes
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- `Cmd+1-9` overrides VS Code's default "switch to Nth tab" behavior. You can rebind these in your keyboard shortcuts settings if needed.
+- Anchors are stored in VS Code's workspace state, so they survive restarts but don't sync across machines.
