@@ -6,7 +6,10 @@
   const existing = document.getElementById(OVERLAY_ID);
   if (existing) {
     existing.remove();
-    document.getElementById(BACKDROP_ID)?.remove();
+    const backdrop = document.getElementById(BACKDROP_ID);
+    if (backdrop) {
+      backdrop.remove();
+    }
     return;
   }
 
@@ -15,6 +18,11 @@
     title: string;
     favIconUrl: string;
     slot: number;
+  }
+
+  interface AnchorMessage {
+    type: string;
+    tabs: AnchorTab[];
   }
 
   function createOverlay(tabs: AnchorTab[]): void {
@@ -62,10 +70,10 @@
         textAlign: "center",
         color: "#888",
       });
-      empty.textContent = "No anchored tabs. Press Cmd+Shift+A to anchor a tab.";
+      empty.textContent = "No anchored tabs. Press Cmd+Shift+P to anchor a tab.";
       panel.appendChild(empty);
     } else {
-      tabs.forEach((tab) => {
+      for (const tab of tabs) {
         const item = document.createElement("div");
         Object.assign(item.style, {
           display: "flex",
@@ -123,7 +131,7 @@
         });
 
         panel.appendChild(item);
-      });
+      }
     }
 
     function cleanup(): void {
@@ -148,14 +156,19 @@
   }
 
   // Listen for messages from background
-  chrome.runtime.onMessage.addListener(
-    (message: { type: string; tabs: AnchorTab[] }) => {
-      if (message.type === "show-anchor-list") {
-        // Remove existing if any (in case of race)
-        document.getElementById(OVERLAY_ID)?.remove();
-        document.getElementById(BACKDROP_ID)?.remove();
-        createOverlay(message.tabs);
+  chrome.runtime.onMessage.addListener((message: unknown) => {
+    const msg = message as AnchorMessage;
+    if (msg.type === "show-anchor-list" || msg.type === "update-anchor-list") {
+      // Remove existing if any, then recreate with fresh data
+      const existingOverlay = document.getElementById(OVERLAY_ID);
+      if (existingOverlay) {
+        existingOverlay.remove();
       }
-    },
-  );
+      const existingBackdrop = document.getElementById(BACKDROP_ID);
+      if (existingBackdrop) {
+        existingBackdrop.remove();
+      }
+      createOverlay(msg.tabs);
+    }
+  });
 })();

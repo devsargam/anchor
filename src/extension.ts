@@ -4,12 +4,16 @@ import * as path from "path";
 let statusBarItem: vscode.StatusBarItem;
 
 function getWorkspaceRoot(): string | undefined {
-  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const folders = vscode.workspace.workspaceFolders;
+  if (folders === undefined || folders.length === 0) {
+    return undefined;
+  }
+  return folders[0].uri.fsPath;
 }
 
 function getRelativePath(filePath: string): string {
   const root = getWorkspaceRoot();
-  if (root && filePath.startsWith(root)) {
+  if (root !== undefined && filePath.startsWith(root)) {
     return path.relative(root, filePath);
   }
   return filePath;
@@ -37,7 +41,7 @@ function getTabFilePath(tab: vscode.Tab): string | undefined {
 
 function updateStatusBar(): void {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) {
+  if (editor === undefined) {
     statusBarItem.hide();
     return;
   }
@@ -57,14 +61,13 @@ function updateStatusBar(): void {
 
 async function addFile(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) {
+  if (editor === undefined) {
     vscode.window.showWarningMessage("No active file to anchor.");
     return;
   }
 
-  // Check if already pinned
   const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-  if (activeTab?.isPinned) {
+  if (activeTab !== undefined && activeTab !== null && activeTab.isPinned) {
     const pinned = getPinnedTabs();
     const slot =
       pinned.findIndex(
@@ -76,33 +79,33 @@ async function addFile(): Promise<void> {
 
   await vscode.commands.executeCommand("workbench.action.pinEditor");
 
-  const name = path.basename(editor.document.uri.fsPath);
+  const fileName = path.basename(editor.document.uri.fsPath);
   const pinned = getPinnedTabs();
   const slot =
     pinned.findIndex(
       (tab) => getTabFilePath(tab) === editor.document.uri.fsPath,
     ) + 1;
-  vscode.window.showInformationMessage(`${name} anchored at slot ${slot}.`);
+  vscode.window.showInformationMessage(`${fileName} anchored at slot ${slot}.`);
   updateStatusBar();
 }
 
 async function removeFile(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) {
+  if (editor === undefined) {
     vscode.window.showWarningMessage("No active file to remove.");
     return;
   }
 
   const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-  if (!activeTab?.isPinned) {
+  if (activeTab === undefined || activeTab === null || !activeTab.isPinned) {
     vscode.window.showInformationMessage("This file is not anchored.");
     return;
   }
 
   await vscode.commands.executeCommand("workbench.action.unpinEditor");
 
-  const name = path.basename(editor.document.uri.fsPath);
-  vscode.window.showInformationMessage(`${name} removed from anchors.`);
+  const fileName = path.basename(editor.document.uri.fsPath);
+  vscode.window.showInformationMessage(`${fileName} removed from anchors.`);
   updateStatusBar();
 }
 
@@ -120,7 +123,7 @@ async function toggleList(): Promise<void> {
     const filePath = getTabFilePath(tab);
     return {
       label: `${i + 1}  ${tab.label}`,
-      description: filePath ? getRelativePath(filePath) : "",
+      description: filePath !== undefined ? getRelativePath(filePath) : "",
     };
   });
 
@@ -137,15 +140,18 @@ async function toggleList(): Promise<void> {
 
   pick.onDidAccept(async () => {
     const selected = pick.selectedItems[0];
-    if (selected) {
+    if (selected !== undefined) {
       const idx = items.indexOf(selected);
       if (idx >= 0) {
-        const filePath = getTabFilePath(pinned[idx]);
-        if (filePath) {
-          const doc = await vscode.workspace.openTextDocument(
-            vscode.Uri.file(filePath),
-          );
-          await vscode.window.showTextDocument(doc);
+        const pinnedTab = pinned[idx];
+        if (pinnedTab !== undefined) {
+          const filePath = getTabFilePath(pinnedTab);
+          if (filePath !== undefined) {
+            const doc = await vscode.workspace.openTextDocument(
+              vscode.Uri.file(filePath),
+            );
+            await vscode.window.showTextDocument(doc);
+          }
         }
       }
     }
@@ -154,43 +160,44 @@ async function toggleList(): Promise<void> {
 
   pick.onDidTriggerButton(async () => {
     const selected = pick.activeItems[0];
-    if (selected) {
+    if (selected !== undefined) {
       const idx = items.indexOf(selected);
       if (idx >= 0) {
         const tab = pinned[idx];
-        const filePath = getTabFilePath(tab);
+        if (tab !== undefined) {
+          const filePath = getTabFilePath(tab);
 
-        // Open the file first so we can unpin it
-        if (filePath) {
-          const doc = await vscode.workspace.openTextDocument(
-            vscode.Uri.file(filePath),
-          );
-          await vscode.window.showTextDocument(doc);
-          await vscode.commands.executeCommand(
-            "workbench.action.unpinEditor",
-          );
+          if (filePath !== undefined) {
+            const doc = await vscode.workspace.openTextDocument(
+              vscode.Uri.file(filePath),
+            );
+            await vscode.window.showTextDocument(doc);
+            await vscode.commands.executeCommand(
+              "workbench.action.unpinEditor",
+            );
 
-          vscode.window.showInformationMessage(
-            `Removed ${tab.label} from anchors.`,
-          );
+            vscode.window.showInformationMessage(
+              `Removed ${tab.label} from anchors.`,
+            );
 
-          // Refresh the list
-          const newPinned = getPinnedTabs();
-          const newItems = newPinned.map((t, i) => {
-            const fp = getTabFilePath(t);
-            return {
-              label: `${i + 1}  ${t.label}`,
-              description: fp ? getRelativePath(fp) : "",
-            };
-          });
-          pick.items = newItems;
-          items.length = 0;
-          items.push(...newItems);
-          pinned.length = 0;
-          pinned.push(...newPinned);
+            // Refresh the list
+            const newPinned = getPinnedTabs();
+            const newItems = newPinned.map((t, i) => {
+              const fp = getTabFilePath(t);
+              return {
+                label: `${i + 1}  ${t.label}`,
+                description: fp !== undefined ? getRelativePath(fp) : "",
+              };
+            });
+            pick.items = newItems;
+            items.length = 0;
+            items.push(...newItems);
+            pinned.length = 0;
+            pinned.push(...newPinned);
 
-          if (newPinned.length === 0) {
-            pick.dispose();
+            if (newPinned.length === 0) {
+              pick.dispose();
+            }
           }
         }
       }
@@ -201,7 +208,7 @@ async function toggleList(): Promise<void> {
   pick.show();
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): void {
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
     100,
@@ -232,4 +239,4 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-export function deactivate() {}
+export function deactivate(): void {}

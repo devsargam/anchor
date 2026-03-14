@@ -1,3 +1,15 @@
+interface PinnedTabData {
+  id: number;
+  title: string;
+  favIconUrl: string;
+  slot: number;
+}
+
+interface SwitchMessage {
+  type: "switch-to-tab";
+  tabId: number;
+}
+
 async function updateBadge(): Promise<void> {
   const pinned = await chrome.tabs.query({ pinned: true, currentWindow: true });
   const count = pinned.length;
@@ -5,54 +17,84 @@ async function updateBadge(): Promise<void> {
   chrome.action.setBadgeBackgroundColor({ color: "#4688F1" });
 }
 
-async function toggleAnchor(): Promise<void> {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-  if (!tab?.id) return;
-
-  await chrome.tabs.update(tab.id, { pinned: !tab.pinned });
-  await updateBadge();
-}
-
-async function toggleList(): Promise<void> {
-  const [activeTab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-  if (!activeTab?.id) return;
-
+async function getPinnedTabsData(): Promise<PinnedTabData[]> {
   const pinnedTabs = await chrome.tabs.query({
     pinned: true,
     currentWindow: true,
   });
+  return pinnedTabs.reduce<PinnedTabData[]>((acc, tab, i) => {
+    if (tab.id !== undefined) {
+      acc.push({
+        id: tab.id,
+        title: tab.title || "Untitled",
+        favIconUrl: tab.favIconUrl || "",
+        slot: i + 1,
+      });
+    }
+    return acc;
+  }, []);
+}
 
-  const tabsData = pinnedTabs.map((tab, i) => ({
-    id: tab.id,
-    title: tab.title || "Untitled",
-    favIconUrl: tab.favIconUrl || "",
-    slot: i + 1,
-  }));
+async function getActiveTabId(): Promise<number | null> {
+  const tabs = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  const activeTab = tabs[0];
+  if (activeTab === undefined || activeTab.id === undefined) {
+    return null;
+  }
+  return activeTab.id;
+}
+
+async function refreshOverlay(): Promise<void> {
+  const tabId = await getActiveTabId();
+  if (tabId === null) return;
+
+  const tabsData = await getPinnedTabsData();
+  chrome.tabs.sendMessage(tabId, {
+    type: "update-anchor-list",
+    tabs: tabsData,
+  }).catch(() => {
+    // Overlay not open on this tab, ignore
+  });
+}
+
+async function toggleAnchor(): Promise<void> {
+  const tabs = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  const tab = tabs[0];
+  if (tab === undefined || tab.id === undefined) return;
+
+  await chrome.tabs.update(tab.id, { pinned: !tab.pinned });
+  await updateBadge();
+  await refreshOverlay();
+}
+
+async function toggleList(): Promise<void> {
+  const tabId = await getActiveTabId();
+  if (tabId === null) return;
+
+  const tabsData = await getPinnedTabsData();
 
   await chrome.scripting.executeScript({
-    target: { tabId: activeTab.id },
+    target: { tabId },
     files: ["list-overlay.js"],
   });
 
   // Small delay to ensure the content script is ready
   setTimeout(() => {
-    if (activeTab.id) {
-      chrome.tabs.sendMessage(activeTab.id, {
-        type: "show-anchor-list",
-        tabs: tabsData,
-      });
-    }
+    chrome.tabs.sendMessage(tabId, {
+      type: "show-anchor-list",
+      tabs: tabsData,
+    });
   }, 50);
 }
 
 // Listen for keyboard shortcuts
-chrome.commands.onCommand.addListener((command) => {
+chrome.commands.onCommand.addListener((command: string) => {
   if (command === "toggle-anchor") {
     toggleAnchor();
   } else if (command === "toggle-list") {
@@ -61,9 +103,10 @@ chrome.commands.onCommand.addListener((command) => {
 });
 
 // Listen for tab switch requests from the overlay
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === "switch-to-tab" && message.tabId) {
-    chrome.tabs.update(message.tabId, { active: true });
+chrome.runtime.onMessage.addListener((message: unknown) => {
+  const msg = message as SwitchMessage;
+  if (msg.type === "switch-to-tab" && typeof msg.tabId === "number") {
+    chrome.tabs.update(msg.tabId, { active: true });
   }
 });
 
