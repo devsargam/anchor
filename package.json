@@ -1,8 +1,10 @@
 {
-  "name": "anchor",
-  "displayName": "Anchor",
+  "name": "vsanchor",
+  "displayName": "Vsanchor",
   "description": "Harpoon-like file navigation for VS Code. Anchor files and jump to them instantly.",
-  "version": "0.0.1",
+  "publisher": "sargampoudel",
+  "version": "0.1.0",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.110.0"
   },
