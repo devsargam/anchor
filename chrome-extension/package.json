@@ -1,0 +1,12 @@
+{
+  "name": "anchor-chrome",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc && cp manifest.json dist/"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "typescript": "^5.9.3"
+  }
+}

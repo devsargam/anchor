@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Anchor",
+  "description": "Harpoon-like tab navigation for Chrome. Pin tabs and jump between them instantly.",
+  "version": "0.1.0",
+  "permissions": ["tabs", "scripting", "activeTab"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {},
+  "commands": {
+    "toggle-anchor": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
+      },
+      "description": "Toggle pin on current tab"
+    },
+    "toggle-list": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Show anchored tabs list"
+    }
+  }
+}
